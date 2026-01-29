@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOVA AI</title>
+
+  <!-- Supabase v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at top right, #1a1a2e, #050505);
+      font-family: system-ui, sans-serif;
+      color: #fff;
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(20,20,20,.85);
+      backdrop-filter: blur(20px);
+      border-radius: 26px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0,0,0,.5);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2.2rem;
+      background: linear-gradient(135deg,#4285F4,#a64dff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p { color: #aaa; margin-bottom: 25px; }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      font-size: 1rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: #4285F4;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .main {
+      background: #4285F4;
+      color: #fff;
+      margin-top: 10px;
+    }
+    .google {
+      background: #fff;
+      color: #222;
+      margin-top: 20px;
+    }
+
+    .link {
+      margin-top: 20px;
+      font-size: .9rem;
+      color: #aaa;
+    }
+    .link span {
+      color: #4285F4;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #chat {
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="auth">
+  <h1>NOVA</h1>
+  <p id="title">مستقبلك يبدأ هنا</p>
+
+  <input id="email" type="email" placeholder="البريد الإلكتروني">
+  <input id="password" type="password" placeholder="كلمة المرور">
+
+  <button class="main" id="submit">دخول</button>
+
+  <button class="google" id="google">متابعة باستخدام Google</button>
+
+  <div class="link">
+    <span id="toggle">إنشاء حساب</span>
+  </div>
+</div>
+
+<div class="card" id="chat">
+  <h1>مرحباً 👋</h1>
+  <p>تم تسجيل الدخول بنجاح</p>
+  <button class="main" id="logout">خروج</button>
+</div>
+
+<script>
+  /* 🔑 مفاتيح Supabase */
+  const SUPABASE_URL = "https://wmkkqnuvzsazurswdjdr.supabase.co";
+  const SUPABASE_KEY = "PUT_YOUR_ANON_KEY_HERE";
+
+  const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  let signup = false;
+
+  const email = document.getElementById("email");
+  const password = document.getElementById("password");
+  const submit = document.getElementById("submit");
+  const toggle = document.getElementById("toggle");
+  const title = document.getElementById("title");
+
+  toggle.onclick = () => {
+    signup = !signup;
+    submit.textContent = signup ? "إنشاء حساب" : "دخول";
+    toggle.textContent = signup ? "لديك حساب؟ تسجيل دخول" : "إنشاء حساب";
+    title.textContent = signup ? "ابدأ رحلتك معنا" : "مستقبلك يبدأ هنا";
+  };
+
+  submit.onclick = async () => {
+    if (!email.value || !password.value) {
+      alert("أدخل البيانات");
+      return;
+    }
+
+    const { error } = signup
+      ? await supabaseClient.auth.signUp({
+          email: email.value,
+          password: password.value
+        })
+      : await supabaseClient.auth.signInWithPassword({
+          email: email.value,
+          password: password.value
+        });
+
+    if (error) alert(error.message);
+  };
+
+  document.getElementById("google").onclick = async () => {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) alert(error.message);
+  };
+
+  supabaseClient.auth.onAuthStateChange((_, session) => {
+    if (session) {
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("chat").style.display = "block";
+    }
+  });
+
+  document.getElementById("logout").onclick = async () => {
+    await supabaseClient.auth.signOut();
+    location.reload();
+  };
+</script>
+
+</body>
+</html>
