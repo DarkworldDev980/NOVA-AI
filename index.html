@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA AI</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body {margin:0;font-family:system-ui,sans-serif;background:radial-gradient(circle at top right,#1a1a2e,#050505);color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;box-sizing:border-box;}
+.card {background:rgba(20,20,20,0.85);backdrop-filter:blur(20px);border-radius:26px;padding:30px;width:100%;max-width:500px;box-shadow:0 25px 50px rgba(0,0,0,.5);}
+h1 {font-size:2rem;margin-bottom:10px;background:linear-gradient(135deg,#4285F4,#a64dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+p.subtitle {color:#aaa;margin-bottom:20px;}
+input {width:100%;padding:12px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background: rgba(255,255,255,.05);color:#fff;font-size:1rem;}
+input:focus {outline:none;border-color:#4285F4;background: rgba(255,255,255,.1);}
+button {width:100%;padding:12px;border-radius:12px;border:none;font-weight:600;cursor:pointer;margin-top:10px;}
+.btn-main {background:#4285F4;color:#fff;}
+.btn-google {background:#fff;color:#222;display:flex;align-items:center;justify-content:center;gap:8px;}
+#chat-ui {display:none;}
+#messages {max-height:400px;overflow-y:auto;border:1px solid #333;padding:10px;margin-bottom:10px;border-radius:10px;background:rgba(0,0,0,0.4);}
+#messages div {margin-bottom:8px;}
+#file-input {margin-bottom:10px;}
+.link {font-size:.9rem;color:#aaa;margin-top:10px;}
+.link span {color:#4285F4;cursor:pointer;font-weight:600;}
+#chat-controls {display:flex;gap:10px;}
+#chat-controls input[type=text]{flex:1;}
+</style>
+</head>
+<body>
+
+<!-- شاشة تسجيل الدخول -->
+<div class="card" id="auth-screen">
+  <h1>NOVA AI</h1>
+  <p class="subtitle" id="status-text">مستقبلك يبدأ هنا مع الذكاء الاصطناعي</p>
+  <input type="email" id="email" placeholder="البريد الإلكتروني">
+  <input type="password" id="password" placeholder="كلمة المرور">
+  <button class="btn-main" id="submit-btn">دخول</button>
+  <button class="btn-google" id="google-btn">متابعة باستخدام Google</button>
+  <div class="link"><span id="toggle">إنشاء حساب</span></div>
+</div>
+
+<!-- شاشة الشات -->
+<div class="card" id="chat-ui">
+  <h1>مرحباً بك في NOVA AI</h1>
+  <div id="messages"></div>
+  <div id="chat-controls">
+    <input type="text" id="user-input" placeholder="اكتب رسالتك هنا...">
+    <input type="file" id="file-input">
+    <button class="btn-main" id="send-btn">إرسال</button>
+  </div>
+  <button class="btn-main" id="logout-btn" style="margin-top:10px;">خروج</button>
+</div>
+
+<script>
+const SUPABASE_URL = "https://wmkkqnuvzsazurswdjdr.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta2txbnV2enNhenVyc3dkamRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0Mzc4MzAsImV4cCI6MjA4NTAxMzgzMH0.PRVzT4kIOiWftiQN8uZt2OFgeX-jJg56xO7xHfzqCss";
+const supabase = supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let signup=false;
+
+const authScreen=document.getElementById('auth-screen');
+const chatUI=document.getElementById('chat-ui');
+const submitBtn=document.getElementById('submit-btn');
+const googleBtn=document.getElementById('google-btn');
+const toggle=document.getElementById('toggle');
+const statusText=document.getElementById('status-text');
+const emailInput=document.getElementById('email');
+const passwordInput=document.getElementById('password');
+const messages=document.getElementById('messages');
+const userInput=document.getElementById('user-input');
+const fileInput=document.getElementById('file-input');
+const sendBtn=document.getElementById('send-btn');
+const logoutBtn=document.getElementById('logout-btn');
+
+// تبديل بين تسجيل الدخول و إنشاء حساب
+toggle.onclick=()=>{
+  signup=!signup;
+  submitBtn.textContent=signup?"إنشاء حساب":"دخول";
+  toggle.textContent=signup?"لديك حساب؟ تسجيل دخول":"إنشاء حساب";
+  statusText.textContent=signup?"ابدأ رحلتك الجديدة معنا":"مستقبلك يبدأ هنا مع الذكاء الاصطناعي";
+}
+
+// تسجيل دخول أو إنشاء حساب
+submitBtn.onclick=async()=>{
+  if(!emailInput.value||!passwordInput.value) return alert("أدخل البيانات");
+  const { error } = signup
+    ? await supabase.auth.signUp({email:emailInput.value,password:passwordInput.value})
+    : await supabase.auth.signInWithPassword({email:emailInput.value,password:passwordInput.value});
+  if(error) alert(error.message);
+}
+
+// تسجيل دخول Google
+googleBtn.onclick=async()=>{
+  const { error } = await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});
+  if(error) alert(error.message);
+}
+
+// متابعة حالة تسجيل الدخول
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(session){
+    authScreen.style.display='none';
+    chatUI.style.display='block';
+  }
+});
+
+// إرسال رسائل + ملفات إلى Edge Function
+sendBtn.onclick=async()=>{
+  const text=userInput.value.trim();
+  if(!text && fileInput.files.length===0) return;
+
+  if(text) messages.innerHTML+=`<div><b>أنت:</b> ${text}</div>`;
+
+  const formData=new FormData();
+  if(text) formData.append('message',text);
+  if(fileInput.files.length>0) formData.append('file',fileInput.files[0]);
+
+  const res=await fetch('https://wmkkqnuvzsazurswdjdr.supabase.co/functions/v1/clever-handler',{
+    method:'POST',
+    body:formData
+  });
+  const data=await res.json();
+
+  messages.innerHTML+=`<div><b>NOVA AI:</b> ${data.response}</div>`;
+  messages.scrollTop=messages.scrollHeight;
+
+  userInput.value='';
+  fileInput.value='';
+}
+
+// خروج
+logoutBtn.onclick=async()=>{
+  await supabase.auth.signOut();
+  location.reload();
+}
+</script>
+</body>
+</html>
